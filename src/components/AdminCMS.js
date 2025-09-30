@@ -16,12 +16,18 @@ const AdminCMS = () => {
         description: '',
         category: '',
         github: '',
+        liveUrl: '',
         date: new Date().toISOString().split('T')[0],
-        featured: false
+        featured: false,
+        isOngoing: false
     });
     const [message, setMessage] = useState({ text: '', type: '' });
     const [uploading, setUploading] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
+    const [editingProject, setEditingProject] = useState(null);
+    const [editTechnologies, setEditTechnologies] = useState([]);
+    const [editImageFiles, setEditImageFiles] = useState([]);
+    const [existingImages, setExistingImages] = useState([]);
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -40,6 +46,8 @@ const AdminCMS = () => {
                 featured,
                 date,
                 github,
+                liveUrl,
+                isOngoing,
                 "images": images[].asset->url
             }`;
             
@@ -90,11 +98,28 @@ const AdminCMS = () => {
         }));
     };
 
+    const handleEditInputChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setEditingProject(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }));
+    };
+
     const addTechnology = () => {
         const techInput = document.getElementById('techInput');
         const tech = techInput.value.trim();
         if (tech && !technologies.includes(tech)) {
             setTechnologies(prev => [...prev, tech]);
+            techInput.value = '';
+        }
+    };
+
+    const addEditTechnology = () => {
+        const techInput = document.getElementById('editTechInput');
+        const tech = techInput.value.trim();
+        if (tech && !editTechnologies.includes(tech)) {
+            setEditTechnologies(prev => [...prev, tech]);
             techInput.value = '';
         }
     };
@@ -106,11 +131,21 @@ const AdminCMS = () => {
         }
     };
 
+    const handleEditTechKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addEditTechnology();
+        }
+    };
+
     const removeTechnology = (index) => {
         setTechnologies(prev => prev.filter((_, i) => i !== index));
     };
 
-    // NEW: Handle Image File Uploads
+    const removeEditTechnology = (index) => {
+        setEditTechnologies(prev => prev.filter((_, i) => i !== index));
+    };
+
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
         if (files.length > 0) {
@@ -118,11 +153,42 @@ const AdminCMS = () => {
         }
     };
 
+    const handleEditImageUpload = (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length > 0) {
+            setEditImageFiles(prev => [...prev, ...files]);
+        }
+    };
+
     const removeImageFile = (index) => {
         setImageFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    // NEW: Upload images to Sanity
+    const removeEditImageFile = (index) => {
+        setEditImageFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const removeExistingImage = async (imageUrl, imageIndex) => {
+        if (!window.confirm('Are you sure you want to remove this image?')) {
+            return;
+        }
+
+        try {
+            // Find the asset ID from the image URL
+            const assetId = imageUrl.split('/').pop().split('?')[0];
+            
+            // Remove from the project's images array
+            const updatedImages = [...existingImages];
+            updatedImages.splice(imageIndex, 1);
+            setExistingImages(updatedImages);
+            
+            showMessage('Image removed successfully!', 'success');
+        } catch (error) {
+            console.error('Error removing image:', error);
+            showMessage('Error removing image', 'error');
+        }
+    };
+
     const uploadImagesToSanity = async (files) => {
         const uploadedImages = [];
         
@@ -161,7 +227,6 @@ const AdminCMS = () => {
         try {
             let imageAssets = [];
             
-            // Upload images if any
             if (imageFiles.length > 0) {
                 imageAssets = await uploadImagesToSanity(imageFiles);
             }
@@ -173,8 +238,10 @@ const AdminCMS = () => {
                 category: formData.category,
                 tech: technologies,
                 featured: formData.featured,
-                date: formData.date,
+                date: formData.isOngoing ? null : formData.date,
+                isOngoing: formData.isOngoing,
                 github: formData.github || undefined,
+                liveUrl: formData.liveUrl || undefined,
                 images: imageAssets.length > 0 ? imageAssets : undefined
             };
 
@@ -195,6 +262,76 @@ const AdminCMS = () => {
         }
     };
 
+    const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!editingProject.title || !editingProject.description || !editingProject.category || editTechnologies.length === 0) {
+        showMessage('Please fill all required fields', 'error');
+        return;
+    }
+
+    // Validate date if not ongoing
+    if (!editingProject.isOngoing && !editingProject.date) {
+        showMessage('Please select a completion date or mark as ongoing', 'error');
+        return;
+    }
+
+    setUploading(true);
+
+    try {
+        let newImageAssets = [];
+        
+        if (editImageFiles.length > 0) {
+            newImageAssets = await uploadImagesToSanity(editImageFiles);
+        }
+
+        // Convert existing images to proper Sanity references
+        const existingImageRefs = existingImages.map(img => {
+            // If it's already a reference object, keep it
+            if (img.asset && img.asset._ref) {
+                return img;
+            }
+            // If it's a URL string, we need to handle it differently
+            // For now, we'll skip these or you'll need to re-upload
+            return null;
+        }).filter(Boolean);
+
+        // Combine existing images with new ones
+        const allImages = [...existingImageRefs, ...newImageAssets];
+
+        const projectData = {
+            title: editingProject.title,
+            description: editingProject.description,
+            category: editingProject.category,
+            tech: editTechnologies,
+            featured: editingProject.featured,
+            date: editingProject.isOngoing ? null : editingProject.date,
+            isOngoing: editingProject.isOngoing,
+            github: editingProject.github || undefined,
+            liveUrl: editingProject.liveUrl || undefined,
+            images: allImages.length > 0 ? allImages : undefined
+        };
+
+        console.log('Updating project with data:', projectData); // Debug log
+
+        const result = await client.patch(editingProject._id).set(projectData).commit();
+        
+        console.log('Update result:', result); // Debug log
+        
+        showMessage('🎉 Project updated successfully!', 'success');
+        setEditingProject(null);
+        setEditTechnologies([]);
+        setEditImageFiles([]);
+        setExistingImages([]);
+        loadProjects(); // Reload the projects list
+    } catch (error) {
+        console.error('Error updating project:', error);
+        showMessage('❌ Failed to update project: ' + error.message, 'error');
+    } finally {
+        setUploading(false);
+    }
+};
+
     const deleteProject = async (projectId, projectTitle) => {
         if (!window.confirm(`Are you sure you want to delete "${projectTitle}"? This action cannot be undone!`)) {
             return;
@@ -214,14 +351,30 @@ const AdminCMS = () => {
         }
     };
 
+    const editProject = (project) => {
+        setEditingProject(project);
+        setEditTechnologies(project.tech || []);
+        setEditImageFiles([]);
+        setExistingImages(project.images || []);
+    };
+
+    const cancelEdit = () => {
+        setEditingProject(null);
+        setEditTechnologies([]);
+        setEditImageFiles([]);
+        setExistingImages([]);
+    };
+
     const clearForm = () => {
         setFormData({
             title: '',
             description: '',
             category: '',
             github: '',
+            liveUrl: '',
             date: new Date().toISOString().split('T')[0],
-            featured: false
+            featured: false,
+            isOngoing: false
         });
         setTechnologies([]);
         setImageFiles([]);
@@ -233,6 +386,7 @@ const AdminCMS = () => {
     };
 
     const formatDate = (dateString) => {
+        if (!dateString) return 'Ongoing';
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
@@ -324,6 +478,251 @@ const AdminCMS = () => {
                             ❌ Incorrect password. Attempts: {failedAttempts}/5
                         </p>
                     )}
+                </div>
+            </div>
+        );
+    }
+
+    // Edit Project Modal
+    if (editingProject) {
+        return (
+            <div className="edit-modal-overlay">
+                <div className="edit-modal">
+                    <div className="edit-modal-header">
+                        <h2>✏️ Edit Project: {editingProject.title}</h2>
+                        <button className="close-modal" onClick={cancelEdit}>×</button>
+                    </div>
+                    
+                    <form onSubmit={handleEditSubmit}>
+                        <div className="form-group">
+                            <label htmlFor="editTitle">Project Title *</label>
+                            <input 
+                                type="text" 
+                                id="editTitle" 
+                                name="title" 
+                                value={editingProject.title}
+                                onChange={handleEditInputChange}
+                                required 
+                            />
+                        </div>
+                        
+                        <div className="form-group">
+                            <label htmlFor="editDescription">Description *</label>
+                            <textarea 
+                                id="editDescription" 
+                                name="description" 
+                                value={editingProject.description}
+                                onChange={handleEditInputChange}
+                                required 
+                                rows="4"
+                            />
+                        </div>
+                        
+                        <div className="form-group">
+                            <label htmlFor="editCategory">Category *</label>
+                            <select 
+                                id="editCategory" 
+                                name="category" 
+                                value={editingProject.category}
+                                onChange={handleEditInputChange}
+                                required
+                            >
+                                <option value="">Select category</option>
+                                <option value="web">Web Development</option>
+                                <option value="app">App Development</option>
+                                <option value="ai">AI/ML Projects</option>
+                            </select>
+                        </div>
+                        
+                        <div className="form-group">
+                            <label>Technologies *</label>
+                            <div className="tech-input-container">
+                                <input 
+                                    type="text" 
+                                    id="editTechInput" 
+                                    className="tech-input" 
+                                    placeholder="Enter technology (e.g., React)"
+                                    onKeyPress={handleEditTechKeyPress}
+                                />
+                                <button 
+                                    type="button" 
+                                    className="add-tech-btn" 
+                                    onClick={addEditTechnology}
+                                >
+                                    Add
+                                </button>
+                            </div>
+                            <div className="tech-tags">
+                                {editTechnologies.map((tech, index) => (
+                                    <div key={index} className="tech-tag">
+                                        {tech}
+                                        <button 
+                                            type="button" 
+                                            onClick={() => removeEditTechnology(index)}
+                                            aria-label={`Remove ${tech}`}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label>Project Images</label>
+                            <div className="image-upload-container">
+                                <input 
+                                    type="file"
+                                    id="editImageUpload"
+                                    multiple
+                                    accept="image/*"
+                                    onChange={handleEditImageUpload}
+                                    className="image-upload-input"
+                                />
+                                <label htmlFor="editImageUpload" className="image-upload-label">
+                                    📁 Add More Images
+                                </label>
+                            </div>
+                            
+                            {/* Existing Images */}
+                            {existingImages.length > 0 && (
+                                <div className="existing-images">
+                                    <h4>Current Images:</h4>
+                                    <div className="image-previews">
+                                        {existingImages.map((image, index) => (
+                                            <div key={index} className="image-preview existing">
+                                                <img 
+                                                    src={image.url} 
+                                                    alt={`Existing ${index + 1}`}
+                                                    className="preview-img"
+                                                />
+                                                <div className="image-info">
+                                                    <span>Image {index + 1}</span>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => removeExistingImage(image.url, index)}
+                                                        className="remove-image-btn"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* New Images */}
+                            {editImageFiles.length > 0 && (
+                                <div className="uploaded-images">
+                                    <h4>New Images to Add ({editImageFiles.length}):</h4>
+                                    <div className="image-previews">
+                                        {editImageFiles.map((file, index) => (
+                                            <div key={index} className="image-preview">
+                                                <img 
+                                                    src={URL.createObjectURL(file)} 
+                                                    alt={file.name}
+                                                    className="preview-img"
+                                                />
+                                                <div className="image-info">
+                                                    <span>{file.name}</span>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => removeEditImageFile(index)}
+                                                        className="remove-image-btn"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="form-group">
+                            <label htmlFor="editGithub">GitHub URL</label>
+                            <input 
+                                type="url" 
+                                id="editGithub" 
+                                name="github" 
+                                value={editingProject.github || ''}
+                                onChange={handleEditInputChange}
+                                placeholder="https://github.com/username/repo" 
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="editLiveUrl">Live Website URL</label>
+                            <input 
+                                type="url" 
+                                id="editLiveUrl" 
+                                name="liveUrl" 
+                                value={editingProject.liveUrl || ''}
+                                onChange={handleEditInputChange}
+                                placeholder="https://your-project.com" 
+                            />
+                        </div>
+                        
+                        <div className="form-group">
+                            <label>
+                                <input 
+                                    type="checkbox" 
+                                    id="editIsOngoing" 
+                                    name="isOngoing" 
+                                    checked={editingProject.isOngoing || false}
+                                    onChange={handleEditInputChange}
+                                />
+                                This project is ongoing
+                            </label>
+                        </div>
+                        
+                        {!editingProject.isOngoing && (
+    <div className="form-group">
+        <label htmlFor="editDate">Completion Date *</label>
+        <input 
+            type="date" 
+            id="editDate" 
+            name="date" 
+            value={editingProject.date ? new Date(editingProject.date).toISOString().split('T')[0] : ''}
+            onChange={handleEditInputChange}
+            required 
+        />
+    </div>
+)}
+                        
+                        <div className="form-group">
+                            <label>
+                                <input 
+                                    type="checkbox" 
+                                    id="editFeatured" 
+                                    name="featured" 
+                                    checked={editingProject.featured || false}
+                                    onChange={handleEditInputChange}
+                                />
+                                Featured Project
+                            </label>
+                        </div>
+                        
+                        <div className="form-actions">
+                            <button 
+                                type="submit" 
+                                className="btn btn-primary"
+                                disabled={uploading}
+                            >
+                                {uploading ? 'Updating Project...' : '💾 Update Project'}
+                            </button>
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary" 
+                                onClick={cancelEdit}
+                                disabled={uploading}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         );
@@ -442,23 +841,22 @@ const AdminCMS = () => {
                                     Add
                                 </button>
                             </div>
-                           <div className="tech-tags">
-    {technologies.map((tech, index) => (
-        <div key={index} className="tech-tag">
-            {tech}
-            <button 
-                type="button" 
-                onClick={() => removeTechnology(index)}
-                aria-label={`Remove ${tech}`}
-            >
-                ×
-            </button>
-        </div>
-    ))}
-</div>
+                            <div className="tech-tags">
+                                {technologies.map((tech, index) => (
+                                    <div key={index} className="tech-tag">
+                                        {tech}
+                                        <button 
+                                            type="button" 
+                                            onClick={() => removeTechnology(index)}
+                                            aria-label={`Remove ${tech}`}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
-                        {/* NEW: Image Upload Section */}
                         <div className="form-group">
                             <label>Project Images</label>
                             <div className="image-upload-container">
@@ -515,18 +913,45 @@ const AdminCMS = () => {
                                 placeholder="https://github.com/username/repo" 
                             />
                         </div>
-                        
+
                         <div className="form-group">
-                            <label htmlFor="date">Completion Date *</label>
+                            <label htmlFor="liveUrl">Live Website URL</label>
                             <input 
-                                type="date" 
-                                id="date" 
-                                name="date" 
-                                value={formData.date}
+                                type="url" 
+                                id="liveUrl" 
+                                name="liveUrl" 
+                                value={formData.liveUrl}
                                 onChange={handleInputChange}
-                                required 
+                                placeholder="https://your-project.com" 
                             />
                         </div>
+                        
+                        <div className="form-group">
+                            <label>
+                                <input 
+                                    type="checkbox" 
+                                    id="isOngoing" 
+                                    name="isOngoing" 
+                                    checked={formData.isOngoing}
+                                    onChange={handleInputChange}
+                                />
+                                This project is ongoing
+                            </label>
+                        </div>
+                        
+                        {!formData.isOngoing && (
+                            <div className="form-group">
+                                <label htmlFor="date">Completion Date *</label>
+                                <input 
+                                    type="date" 
+                                    id="date" 
+                                    name="date" 
+                                    value={formData.date}
+                                    onChange={handleInputChange}
+                                    required 
+                                />
+                            </div>
+                        )}
                         
                         <div className="form-group">
                             <label>
@@ -567,7 +992,7 @@ const AdminCMS = () => {
                 <div className="tab-content">
                     <div className="instructions">
                         <h3>📋 Projects in Sanity ({projects.length})</h3>
-                        <p>These projects are automatically loaded from your Sanity CMS. You can delete projects instantly.</p>
+                        <p>Manage your projects - edit or delete them as needed.</p>
                     </div>
                     
                     <div className="projects-list">
@@ -581,17 +1006,26 @@ const AdminCMS = () => {
                                     <div className="project-header">
                                         <h3 className="project-title">{project.title}</h3>
                                         <div className="project-actions">
-                                            <span className="project-badge">
+                                            <span className={`project-badge ${project.category}`}>
                                                 {project.category ? project.category.toUpperCase() : 'PROJECT'}
                                             </span>
-                                            <button 
-                                                className={`delete-btn ${deletingId === project._id ? 'deleting' : ''}`}
-                                                onClick={() => deleteProject(project._id, project.title)}
-                                                title="Delete project"
-                                                disabled={deletingId === project._id}
-                                            >
-                                                {deletingId === project._id ? '🗑️ Deleting...' : '🗑️ Delete'}
-                                            </button>
+                                            <div className="action-buttons">
+                                                <button 
+                                                    className="edit-btn"
+                                                    onClick={() => editProject(project)}
+                                                    title="Edit project"
+                                                >
+                                                    ✏️ Edit
+                                                </button>
+                                                <button 
+                                                    className={`delete-btn ${deletingId === project._id ? 'deleting' : ''}`}
+                                                    onClick={() => deleteProject(project._id, project.title)}
+                                                    title="Delete project"
+                                                    disabled={deletingId === project._id}
+                                                >
+                                                    {deletingId === project._id ? '🗑️ Deleting...' : '🗑️ Delete'}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                     <p className="project-description">{project.description}</p>
@@ -601,6 +1035,7 @@ const AdminCMS = () => {
                                         ))}
                                     </div>
                                     <div className="project-meta">
+                                        <span><strong>Status:</strong> {project.isOngoing ? '🟡 Ongoing' : '✅ Completed'}</span>
                                         <span><strong>Date:</strong> {formatDate(project.date)}</span>
                                         <span><strong>Featured:</strong> {project.featured ? 'Yes' : 'No'}</span>
                                         {project.github && (
@@ -611,7 +1046,14 @@ const AdminCMS = () => {
                                                 </a>
                                             </span>
                                         )}
-                                        <span><strong>ID:</strong> {project._id.substring(0, 8)}...</span>
+                                        {project.liveUrl && (
+                                            <span>
+                                                <strong>Live URL:</strong>{' '}
+                                                <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
+                                                    Visit
+                                                </a>
+                                            </span>
+                                        )}
                                     </div>
                                     {project.images && project.images.length > 0 && (
                                         <div className="project-images">
@@ -644,16 +1086,17 @@ const AdminCMS = () => {
                     <div className="instructions">
                         <h3>🚀 Sanity.io Setup Guide</h3>
                         
-                        <h4>Environment Variables</h4>
-                        <p>Make sure your <code>.env</code> file has:</p>
-                        <pre>
-{`REACT_APP_SANITY_PROJECT_ID=cSchpdfm
-REACT_APP_SANITY_TOKEN=your_token_here`}
-                        </pre>
+                        <h4>New Features Added:</h4>
+                        <ul>
+                            <li>✅ Live Website URL field</li>
+                            <li>✅ Ongoing project option</li>
+                            <li>✅ Edit existing projects</li>
+                            <li>✅ Manage project images</li>
+                            <li>✅ Flexible date selection</li>
+                        </ul>
                         
                         <div className="message success">
-                            <strong>✅ New Feature:</strong> You can now upload images directly from the Admin CMS!
-                            No need for Sanity Studio anymore.
+                            <strong>🎉 Enhanced CMS:</strong> You can now fully manage all aspects of your projects!
                         </div>
                     </div>
                 </div>
