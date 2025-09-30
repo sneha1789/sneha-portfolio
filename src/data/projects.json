@@ -1,0 +1,95 @@
+{
+    "projects" : [
+        {
+        "id": 1,
+        "title": "E-Commerce Platform",
+        "description": "A full-stack e-commerce solution with React frontend, Node.js backend, and MongoDB database. Features user authentication, payment integration, and admin dashboard.",
+        "category": "web",
+        "tech": ["React", "Node.js", "MongoDB", "Express", "Stripe"],
+        "images": [
+            "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            "https://images.unsplash.com/photo-1563013544-824ae1b704d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            "https://images.unsplash.com/photo-1560472355-536de3962603?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80"
+        ],
+        "featured": true,
+        "date": "2024-03-15",
+        "github": "https://github.com/yourusername/ecommerce-platform"
+    },
+    {
+        "id": 2,
+        "title": "Portfolio Website",
+        "description": "A modern, responsive portfolio website with smooth animations, dark mode toggle, and optimized performance across all devices.",
+        "category": "web",
+        "tech": ["HTML5", "CSS3", "JavaScript", "GSAP"],
+        "images": [
+            "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            "https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            "https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80"
+        ],
+        "featured": true,
+        "date": "2024-02-20",
+        "github": "https://github.com/yourusername/portfolio-website"
+    },
+    {
+        "id": 3,
+        "title": "Task Management App",
+        "description": "A collaborative task management application with real-time updates, drag-and-drop functionality, and team collaboration features.",
+        "category": "web",
+        "tech": ["React", "Firebase", "Material-UI", "Socket.io"],
+        "images": [
+            "https://images.unsplash.com/photo-1611224923853-80b023f02d71?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            "https://images.unsplash.com/photo-1543286386-713bdd548da4?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80"
+        ],
+        "featured": false,
+        "date": "2024-01-10",
+        "github": "https://github.com/yourusername/task-management-app"
+    },
+  
+    {
+        "id": 4,
+        "title": "Fitness Tracker Mobile App",
+        "description": "A cross-platform mobile application for tracking workouts, nutrition, and fitness progress with personalized recommendations.",
+        "category": "app",
+        "tech": ["React Native", "Redux", "Firebase", "Chart.js"],
+        "images": [
+            "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80"
+        ],
+        "featured": true,
+        "date": "2024-03-01",
+        "github": "https://github.com/yourusername/fitness-tracker-app"
+    },
+    {
+        "id": 5,
+        "title": "Recipe Sharing App",
+        "description": "A social recipe sharing application where users can create, share, and discover new recipes with step-by-step cooking instructions.",
+        "category": "app",
+        "tech": ["Flutter", "Dart", "SQLite", "Node.js"],
+        "images": [
+            "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80"
+        ],
+        "featured": true,
+        "date": "2024-02-05",
+        "github": "https://github.com/yourusername/recipe-sharing-app"
+    },
+    {
+        "id": 6,
+        "title": "Expense Tracker App",
+        "description": "A personal finance management app for tracking expenses, setting budgets, and generating financial reports with intuitive charts.",
+        "category": "app",
+        "tech": ["React Native", "Context API", "SQLite", "Victory Charts"],
+        "images": [
+            "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+            "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80"
+        ],
+        "featured": false,
+        "date": "2024-01-25",
+        "github": "https://github.com/yourusername/expense-tracker-app"
+    }
+    ]
+}
