@@ -5,10 +5,11 @@
   "homepage": "https://your-username.vercel.app",
   "dependencies": {
     "@sanity/client": "^7.11.2",
+    "@sanity/image-url": "^1.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.0",
-    "react-scripts": "5.0.1"
+    "sanity": "^4.10.1"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -27,5 +28,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "react-scripts": "^5.0.1"
   }
 }
