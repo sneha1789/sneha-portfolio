@@ -33,6 +33,7 @@ const Projects = () => {
                 tech,
                 featured,
                 date,
+                isOngoing,
                 github,
                 liveUrl,
                 "images": images[].asset->url
@@ -168,11 +169,14 @@ const Projects = () => {
         }
     };
 
-    const formatDisplayDate = (dateString) => {
-        const date = new Date(dateString);
-        const options = { year: 'numeric', month: 'long' };
-        return date.toLocaleDateString('en-US', options);
-    };
+   const formatDisplayDate = (dateString, isOngoing = false) => {
+    if (isOngoing || !dateString) {
+        return 'Ongoing';
+    }
+    const date = new Date(dateString);
+    const options = { year: 'numeric', month: 'long' };
+    return date.toLocaleDateString('en-US', options);
+};
 
     if (loading) {
         return (
@@ -293,8 +297,10 @@ const Projects = () => {
                                         <h3 className="project-title">{project.title}</h3>
                                         <p className="project-desc">{project.description}</p>
                                         <div className="project-meta">
-                                            <span className="project-date">Completed: {formatDisplayDate(project.date)}</span>
-                                        </div>
+    <span className="project-date">
+        {project.isOngoing || !project.date ? 'Ongoing' : `Completed: ${formatDisplayDate(project.date)}`}
+    </span>
+</div>
                                         <div className="project-tech">
                                             {project.tech && project.tech.map((tech, index) => (
                                                 <span key={index} className="tech-tag">{tech}</span>
